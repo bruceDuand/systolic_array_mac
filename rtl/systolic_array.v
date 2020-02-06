@@ -38,7 +38,7 @@ module SystolicArray #(
     
     input   wire                                    bbias_read_req,
     input   wire    [ BBUFF_DATA_WIDTH  - 1 : 0 ]   bbias_read_data,
-    input   wire    [ BBUF_ADDR_WIDTH   - 1 : 0 ]   bbias_read_addr,
+    input   wire    [ BBUF_ADDR_WIDTH   - 1 : 0 ]   bbias_read_addr
 
 );
     
@@ -49,6 +49,11 @@ module SystolicArray #(
     reg     [ 2                     - 1 : 0 ]       acc_state;                                            
     wire                                            _addr_eq;
     reg                                             addr_eq;
+
+    wire    [ ARRAY_M               - 1 : 0 ]       systolic_out_valid;
+    wire    [ ARRAY_N               - 1 : 0 ]       _systolic_out_valid;
+
+
 
     //=============================================================
     // Systolic array 
@@ -84,17 +89,17 @@ module SystolicArray #(
                 end
 
                 pe  #(
-                    .PE_MODE                    .( PE_MODE          ),
-                    .ACT_WIDTH                  .( ACT_WIDTH        ),
-                    .WGT_WIDTH                  .( WGT_WIDTH        ),
-                    .PE_OUT_WIDTH               .( PE_OUT_WIDTH     )
+                    .PE_MODE                    ( PE_MODE          ),
+                    .ACT_WIDTH                  ( ACT_WIDTH        ),
+                    .WGT_WIDTH                  ( WGT_WIDTH        ),
+                    .PE_OUT_WIDTH               ( PE_OUT_WIDTH     )
                 ) pe_inst (
-                    .clk                        .( clk              ),
-                    .reset                      .( reset            ),
-                    .a                          .( a                ),
-                    .b                          .( b                ),
-                    .c                          .( c                ),
-                    .out                        .( pe_out           )
+                    .clk                        ( clk              ),
+                    .reset                      ( reset            ),
+                    .a                          ( a                ),
+                    .b                          ( b                ),
+                    .c                          ( c                ),
+                    .out                        ( pe_out           )
                 );
 
                 if ( n == ARRAY_N - 1 ) begin
@@ -119,7 +124,7 @@ module SystolicArray #(
     localparam integer  ACC_INVALID             = 0;
     localparam integer  ACC_VALID               = 1;
 
-    assign _addr_eq = (obuf_write_addr == prev_obuf_write_addr) && (obuf_write_req) && (acc_state != ACC_INVALID)
+    assign _addr_eq = (obuf_write_addr == prev_obuf_write_addr) && (obuf_write_req) && (acc_state != ACC_INVALID);
     always @( posedge clk ) begin
         if ( reset )
             addr_eq <= 1'b0;
@@ -129,10 +134,10 @@ module SystolicArray #(
     
     wire acc_clear_dly1;
     register_sync #(1) acc_clear_dlyreg (
-        .clk                        .( clk              ),
-        .reset                      .( reset            ),
-        .in                         .( acc_clear        ),
-        .out                        .( acc_clear_dly1   ),
+        .clk                        ( clk              ),
+        .reset                      ( reset            ),
+        .in                         ( acc_clear        ),
+        .out                        ( acc_clear_dly1   ),
     );
 
     always @( * ) begin
@@ -146,6 +151,7 @@ module SystolicArray #(
                 if ( obuf_write_req )
                     acc_state_next = ACC_VALID;
             end
+        endcase
     end
 
     always @( posedge clk ) begin
@@ -160,7 +166,10 @@ module SystolicArray #(
     //=============================================================
     
     // A signle output is ready after ARRAY_N cycles
-    register_sync #(1) out_valid_delay(clk, reset, ou)
+    register_sync #(1) out_valid_delay(clk, reset, obuf_write_req, _systolic_out_valid[0])
+    always @( posedge clk) begin
+        
+    end
 
     
     
